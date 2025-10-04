@@ -1,0 +1,7 @@
+{
+  "name": "NavGurukul AI Assistant",
+  "description": "An AI-powered chatbot to answer questions about NavGurukul's policies, academics, and campus life using text, audio, and file inputs.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
