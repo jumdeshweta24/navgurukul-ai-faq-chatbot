@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { Chat } from '@google/genai';
-import { Message, MessageRole } from './types';
+import { Message, MessageRole, GroundingChunk } from './types';
 import { initializeChat, sendMessageToAIStream } from './services/geminiService';
 import Header from './components/Header';
 import ChatWindow from './components/ChatWindow';
 import InputBar from './components/InputBar';
 
+const generateUniqueId = () => Date.now().toString(36) + Math.random().toString(36).substring(2);
+
 const App: React.FC = () => {
     const [messages, setMessages] = useState<Message[]>([
-        { role: MessageRole.MODEL, text: "Hello! I am the NavGurukul AI Assistant. How can I help you today?" }
+        { id: generateUniqueId(), role: MessageRole.MODEL, text: "Hello! I am the NavGurukul AI Assistant. How can I help you today?", feedback: null }
     ]);
     const [isLoading, setIsLoading] = useState(false);
     const [flashBg, setFlashBg] = useState(false);
@@ -17,7 +19,7 @@ const App: React.FC = () => {
     const startNewChat = useCallback(() => {
         chatRef.current = initializeChat();
         setMessages([
-            { role: MessageRole.MODEL, text: "Chat cleared. Ready for your next question!" }
+            { id: generateUniqueId(), role: MessageRole.MODEL, text: "Chat cleared. Ready for your next question!", feedback: null }
         ]);
     }, []);
 
@@ -29,6 +31,14 @@ const App: React.FC = () => {
         startNewChat();
         setFlashBg(true);
         setTimeout(() => setFlashBg(false), 300);
+    };
+
+    const handleFeedback = (messageId: string, feedback: 'up' | 'down') => {
+        setMessages(prevMessages =>
+            prevMessages.map(msg =>
+                msg.id === messageId ? { ...msg, feedback } : msg
+            )
+        );
     };
 
     const readFileAsText = (file: File): Promise<string> => {
@@ -48,7 +58,7 @@ const App: React.FC = () => {
     const handleSendMessage = async (text: string, file?: File) => {
         if (!chatRef.current || isLoading) return;
 
-        const userMessage: Message = { role: MessageRole.USER, text };
+        const userMessage: Message = { id: generateUniqueId(), role: MessageRole.USER, text };
         let fileContent = "";
         const preApiMessages: Message[] = [];
 
@@ -57,12 +67,13 @@ const App: React.FC = () => {
             try {
                 fileContent = await readFileAsText(file);
                 preApiMessages.push({
+                    id: generateUniqueId(),
                     role: MessageRole.SYSTEM,
                     text: `You have uploaded ${file.name}.`
                 });
             } catch (error) {
                 console.error("Error reading file:", error);
-                const errorMessage: Message = { role: MessageRole.MODEL, text: "Sorry, I couldn't read that file." };
+                const errorMessage: Message = { id: generateUniqueId(), role: MessageRole.MODEL, text: "Sorry, I couldn't read that file.", feedback: null };
                 setMessages(prev => [...prev, userMessage, errorMessage]);
                 return;
             }
@@ -81,11 +92,19 @@ const App: React.FC = () => {
 
             let isFirstChunk = true;
             let currentResponseText = "";
+            let sources: GroundingChunk[] = [];
+            let responseId = generateUniqueId();
 
             for await (const chunk of responseStream) {
                 currentResponseText += chunk.text;
+
+                const groundingMetadata = chunk.candidates?.[0]?.groundingMetadata;
+                if (groundingMetadata?.groundingChunks) {
+                    sources.push(...groundingMetadata.groundingChunks.filter((c: any): c is GroundingChunk => c.web));
+                }
+
                 if (isFirstChunk) {
-                    setMessages(prev => [...prev, { role: MessageRole.MODEL, text: currentResponseText }]);
+                    setMessages(prev => [...prev, { id: responseId, role: MessageRole.MODEL, text: currentResponseText, sources: [], feedback: null }]);
                     isFirstChunk = false;
                 } else {
                     setMessages(prev => {
@@ -99,18 +118,34 @@ const App: React.FC = () => {
                 }
             }
 
+            if (!isFirstChunk && sources.length > 0) {
+                const uniqueSources = Array.from(new Map(sources.map(item => [item.web.uri, item])).values());
+                 setMessages(prev => {
+                    const newMessages = [...prev];
+                    const lastMessage = newMessages[newMessages.length - 1];
+                    if (lastMessage?.role === MessageRole.MODEL) {
+                        lastMessage.sources = uniqueSources;
+                    }
+                    return newMessages;
+                });
+            }
+
             if (isFirstChunk) { // Handle cases where the stream is empty
                 setMessages(prev => [...prev, {
+                    id: generateUniqueId(),
                     role: MessageRole.MODEL,
-                    text: "I'm sorry, I couldn't generate a response. Please try rephrasing your question."
+                    text: "I'm sorry, I couldn't generate a response. Please try rephrasing your question.",
+                    feedback: null,
                 }]);
             }
 
         } catch (error) {
             console.error(error);
             const errorMessage: Message = {
+                id: generateUniqueId(),
                 role: MessageRole.MODEL,
-                text: "Oops! Something went wrong. Please try again later."
+                text: "Oops! Something went wrong. Please try again later.",
+                feedback: null,
             };
             setMessages(prev => [...prev, errorMessage]);
         } finally {
@@ -127,6 +162,7 @@ const App: React.FC = () => {
                 isLoading={isLoading} 
                 onPromptClick={handleSendMessage}
                 flashBg={flashBg} 
+                onFeedback={handleFeedback}
             />
             <InputBar onSendMessage={handleSendMessage} isLoading={isLoading} />
         </div>

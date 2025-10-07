@@ -8,6 +8,7 @@ interface ChatWindowProps {
     isLoading: boolean;
     onPromptClick: (prompt: string) => void;
     flashBg: boolean;
+    onFeedback: (messageId: string, feedback: 'up' | 'down') => void;
 }
 
 const suggestedPrompts = [
@@ -17,7 +18,7 @@ const suggestedPrompts = [
     "How does the placement process work?",
 ];
 
-const ChatWindow: React.FC<ChatWindowProps> = ({ messages, isLoading, onPromptClick, flashBg }) => {
+const ChatWindow: React.FC<ChatWindowProps> = ({ messages, isLoading, onPromptClick, flashBg, onFeedback }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
@@ -28,8 +29,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ messages, isLoading, onPromptCl
 
     return (
         <div className={`flex-1 p-6 overflow-y-auto ${flashBg ? 'bg-orange-200' : 'bg-orange-100'} transition-colors duration-300`}>
-            {messages.map((msg, index) => (
-                <MessageComponent key={index} message={msg} />
+            {messages.map((msg) => (
+                <MessageComponent key={msg.id} message={msg} onFeedback={onFeedback} />
             ))}
 
             {messages.length <= 1 && !isLoading && (

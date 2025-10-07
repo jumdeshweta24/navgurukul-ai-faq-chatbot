@@ -12,6 +12,7 @@ export const initializeChat = (): Chat => {
     model: 'gemini-2.5-flash',
     config: {
       systemInstruction: SYSTEM_INSTRUCTION,
+      tools: [{googleSearch: {}}],
     },
   });
 };
