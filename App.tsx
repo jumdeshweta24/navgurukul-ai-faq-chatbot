@@ -11,12 +11,13 @@ const App: React.FC = () => {
         { role: MessageRole.MODEL, text: "Hello! I am the NavGurukul AI Assistant. How can I help you today?" }
     ]);
     const [isLoading, setIsLoading] = useState(false);
+    const [flashBg, setFlashBg] = useState(false);
     const chatRef = useRef<Chat | null>(null);
 
     const startNewChat = useCallback(() => {
         chatRef.current = initializeChat();
         setMessages([
-            { role: MessageRole.MODEL, text: "History cleared. How can I assist you now?" }
+            { role: MessageRole.MODEL, text: "Chat cleared. Ready for your next question!" }
         ]);
     }, []);
 
@@ -26,6 +27,8 @@ const App: React.FC = () => {
 
     const handleClearHistory = () => {
         startNewChat();
+        setFlashBg(true);
+        setTimeout(() => setFlashBg(false), 300);
     };
 
     const readFileAsText = (file: File): Promise<string> => {
@@ -117,9 +120,14 @@ const App: React.FC = () => {
 
 
     return (
-        <div className="flex flex-col h-screen font-sans">
+        <div className="flex flex-col h-screen font-sans bg-orange-50/50">
             <Header onClearHistory={handleClearHistory} />
-            <ChatWindow messages={messages} isLoading={isLoading} />
+            <ChatWindow 
+                messages={messages} 
+                isLoading={isLoading} 
+                onPromptClick={handleSendMessage}
+                flashBg={flashBg} 
+            />
             <InputBar onSendMessage={handleSendMessage} isLoading={isLoading} />
         </div>
     );

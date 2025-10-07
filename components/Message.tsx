@@ -22,14 +22,14 @@ const MessageComponent: React.FC<MessageProps> = ({ message }) => {
         <div className={`flex items-start gap-3 my-4 ${isUser ? 'justify-end' : ''}`}>
             {!isUser && <BotIcon />}
             <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
-                <div className={`max-w-md md:max-w-lg lg:max-w-2xl p-3 rounded-2xl shadow ${isUser ? 'bg-indigo-500 text-white rounded-br-none' : 'bg-white text-gray-800 rounded-bl-none'}`}>
+                <div className={`max-w-md md:max-w-lg lg:max-w-2xl p-3.5 rounded-2xl shadow-sm ${isUser ? 'bg-orange-500 text-white rounded-br-none' : 'bg-white text-gray-800 border border-gray-200/80 rounded-bl-none'}`}>
                     {message.fileInfo && (
-                        <div className="mb-2 p-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 text-sm">
+                        <div className="mb-2 p-2 border border-gray-300/50 rounded-lg bg-white/30 text-current text-sm">
                             <p className="font-bold">File: {message.fileInfo.name}</p>
-                            <p className="text-xs">{message.fileInfo.type}</p>
+                            <p className="text-xs opacity-80">{message.fileInfo.type}</p>
                         </div>
                     )}
-                    <p className="whitespace-pre-wrap">{message.text}</p>
+                    <p className="whitespace-pre-wrap leading-relaxed">{message.text}</p>
                 </div>
             </div>
             {isUser && <UserIcon />}

@@ -27,14 +27,16 @@ const InputBar: React.FC<InputBarProps> = ({ onSendMessage, isLoading }) => {
             recognitionRef.current.interimResults = false;
             recognitionRef.current.lang = 'en-US';
 
+            // FIX: Use `any` for the event type because `SpeechRecognitionEvent` is not a standard TypeScript type and may cause compilation errors.
             recognitionRef.current.onresult = (event: any) => {
                 const transcript = event.results[0][0].transcript;
                 setText(transcript);
                 setIsListening(false);
             };
 
+            // FIX: Use `any` for the event type because `SpeechRecognitionErrorEvent` is not a standard TypeScript type and may cause compilation errors.
             recognitionRef.current.onerror = (event: any) => {
-                console.error("Speech recognition error", event);
+                console.error("Speech recognition error:", event.error);
                 setIsListening(false);
             };
             
@@ -73,7 +75,6 @@ const InputBar: React.FC<InputBarProps> = ({ onSendMessage, isLoading }) => {
             }
             setText('');
         }
-        // Reset file input to allow selecting the same file again
         if(fileInputRef.current) {
             fileInputRef.current.value = '';
         }
@@ -81,11 +82,12 @@ const InputBar: React.FC<InputBarProps> = ({ onSendMessage, isLoading }) => {
 
     return (
         <div className="bg-white p-4 border-t border-gray-200">
-            <div className="flex items-center bg-gray-100 rounded-lg p-2">
+            <div className="flex items-center bg-gray-100 rounded-full p-2">
                 <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isLoading}
-                    className="p-2 text-gray-500 hover:text-indigo-600 disabled:opacity-50"
+                    className="p-2 text-gray-500 hover:text-orange-600 disabled:opacity-50 transition-colors"
+                    aria-label="Attach file"
                 >
                     <PaperclipIcon />
                 </button>
@@ -106,21 +108,23 @@ const InputBar: React.FC<InputBarProps> = ({ onSendMessage, isLoading }) => {
                         }
                     }}
                     placeholder="Ask a question about NavGurukul..."
-                    className="flex-1 bg-transparent px-4 py-2 resize-none outline-none text-gray-800"
+                    className="flex-1 bg-transparent px-4 py-2 resize-none outline-none text-gray-800 placeholder-gray-500"
                     rows={1}
                     disabled={isLoading}
                 />
                 <button
                     onClick={handleMicClick}
                     disabled={isLoading}
-                    className="p-2 hover:bg-gray-200 rounded-full disabled:opacity-50"
+                    className="p-2 hover:bg-gray-200 rounded-full disabled:opacity-50 transition-colors"
+                    aria-label="Use microphone"
                 >
                     <MicIcon isListening={isListening} />
                 </button>
                 <button
                     onClick={handleSend}
                     disabled={isLoading || !text.trim()}
-                    className="p-2 ml-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed transition-colors"
+                    className="p-3 ml-2 bg-orange-500 text-white rounded-full hover:bg-orange-600 disabled:bg-orange-300 disabled:cursor-not-allowed transition-all"
+                    aria-label="Send message"
                 >
                     <SendIcon />
                 </button>
