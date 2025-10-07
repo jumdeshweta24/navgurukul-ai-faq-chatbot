@@ -2,39 +2,44 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { Chat } from '@google/genai';
 import { Message, MessageRole, GroundingChunk } from './types';
 import { initializeChat, sendMessageToAIStream } from './services/geminiService';
+import { getCurrentUser, logout } from './services/authService';
 import Header from './components/Header';
 import ChatWindow from './components/ChatWindow';
 import InputBar from './components/InputBar';
+import Auth from './components/Auth';
 
 const generateUniqueId = () => Date.now().toString(36) + Math.random().toString(36).substring(2);
 
 const App: React.FC = () => {
-    const [messages, setMessages] = useState<Message[]>([
-        { id: generateUniqueId(), role: MessageRole.MODEL, text: "Hello! I am the NavGurukul AI Assistant. How can I help you today?", feedback: null }
-    ]);
+    const [currentUser, setCurrentUser] = useState<{ email: string } | null>(getCurrentUser());
+    const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [flashBg, setFlashBg] = useState(false);
     const chatRef = useRef<Chat | null>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
 
     const startNewChat = useCallback(() => {
-        chatRef.current = initializeChat();
-        setMessages([
-            { id: generateUniqueId(), role: MessageRole.MODEL, text: "Chat cleared. Ready for your next question!", feedback: null }
-        ]);
+        if (chatRef.current) {
+            setMessages([
+                { id: generateUniqueId(), role: MessageRole.MODEL, text: "Chat cleared. Ready for your next question!", feedback: null }
+            ]);
+        }
     }, []);
 
     useEffect(() => {
-        chatRef.current = initializeChat();
-    }, []);
+        if (currentUser) {
+            chatRef.current = initializeChat();
+             setMessages([
+                { id: generateUniqueId(), role: MessageRole.MODEL, text: "Hello! I am the NavGurukul AI Assistant. How can I help you today?", feedback: null }
+            ]);
+        }
+    }, [currentUser]);
 
     useEffect(() => {
-        // Set focus on the input textarea when the component mounts,
-        // after a new message is received, or when the chat is cleared.
-        if (!isLoading) {
+        if (!isLoading && currentUser) {
             inputRef.current?.focus();
         }
-    }, [isLoading, messages.length]);
+    }, [isLoading, messages.length, currentUser]);
 
     const handleClearHistory = () => {
         startNewChat();
@@ -55,7 +60,6 @@ const App: React.FC = () => {
             const reader = new FileReader();
             reader.onload = () => resolve(reader.result as string);
             reader.onerror = (error) => reject(error);
-            // Basic text extraction for demo. PDF/DOCX would need complex libraries.
             if (file.type === "application/pdf" || file.type.includes("wordprocessingml")) {
                 resolve(`[File content for ${file.name} cannot be read directly. This is a placeholder for file content extraction.]`);
             } else {
@@ -139,7 +143,7 @@ const App: React.FC = () => {
                 });
             }
 
-            if (isFirstChunk) { // Handle cases where the stream is empty
+            if (isFirstChunk) { 
                 setMessages(prev => [...prev, {
                     id: generateUniqueId(),
                     role: MessageRole.MODEL,
@@ -162,10 +166,28 @@ const App: React.FC = () => {
         }
     };
 
+    const handleLoginSuccess = (user: { email: string }) => {
+        setCurrentUser(user);
+    };
+
+    const handleLogout = () => {
+        logout();
+        setCurrentUser(null);
+        setMessages([]);
+        chatRef.current = null;
+    };
+
+    if (!currentUser) {
+        return <Auth onLoginSuccess={handleLoginSuccess} />;
+    }
 
     return (
         <div className="flex flex-col h-screen font-sans bg-orange-50/50">
-            <Header onClearHistory={handleClearHistory} />
+            <Header 
+                onClearHistory={handleClearHistory} 
+                onLogout={handleLogout} 
+                currentUserEmail={currentUser.email} 
+            />
             <ChatWindow 
                 messages={messages} 
                 isLoading={isLoading} 
