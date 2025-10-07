@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, forwardRef } from 'react';
 import { SendIcon, MicIcon, PaperclipIcon } from './icons';
 
 interface InputBarProps {
@@ -13,38 +13,55 @@ declare global {
     }
 }
 
-const InputBar: React.FC<InputBarProps> = ({ onSendMessage, isLoading }) => {
+const InputBar = forwardRef<HTMLTextAreaElement, InputBarProps>(({ onSendMessage, isLoading }, ref) => {
     const [text, setText] = useState('');
-    const [isListening, setIsListening] = useState(false);
+    const [micStatus, setMicStatus] = useState<'idle' | 'listening' | 'error' | 'denied'>('idle');
     const fileInputRef = useRef<HTMLInputElement>(null);
     const recognitionRef = useRef<any>(null);
 
     useEffect(() => {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (SpeechRecognition) {
-            recognitionRef.current = new SpeechRecognition();
-            recognitionRef.current.continuous = false;
-            recognitionRef.current.interimResults = false;
-            recognitionRef.current.lang = 'en-US';
-
-            // FIX: Use `any` for the event type because `SpeechRecognitionEvent` is not a standard TypeScript type and may cause compilation errors.
-            recognitionRef.current.onresult = (event: any) => {
-                const transcript = event.results[0][0].transcript;
-                setText(transcript);
-                setIsListening(false);
-            };
-
-            // FIX: Use `any` for the event type because `SpeechRecognitionErrorEvent` is not a standard TypeScript type and may cause compilation errors.
-            recognitionRef.current.onerror = (event: any) => {
-                console.error("Speech recognition error:", event.error);
-                setIsListening(false);
-            };
-            
-            recognitionRef.current.onend = () => {
-                setIsListening(false);
-            };
+        if (!SpeechRecognition) {
+            console.warn("Speech Recognition API is not supported in this browser.");
+            setMicStatus('denied');
+            return;
         }
+
+        recognitionRef.current = new SpeechRecognition();
+        recognitionRef.current.continuous = false;
+        recognitionRef.current.interimResults = false;
+        recognitionRef.current.lang = 'en-US';
+        
+        recognitionRef.current.onstart = () => {
+            setMicStatus('listening');
+        };
+
+        recognitionRef.current.onresult = (event: any) => {
+            const transcript = event.results[0][0].transcript;
+            setText(transcript);
+        };
+
+        recognitionRef.current.onerror = (event: any) => {
+            console.error("Speech recognition error:", event.error);
+            if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+                setMicStatus('denied');
+            } else {
+                setMicStatus('error');
+                setTimeout(() => setMicStatus(prev => prev === 'error' ? 'idle' : prev), 2000);
+            }
+        };
+        
+        recognitionRef.current.onend = () => {
+            setMicStatus(prev => (prev === 'denied' ? 'denied' : 'idle'));
+        };
+
+        return () => {
+            if (recognitionRef.current) {
+                recognitionRef.current.abort();
+            }
+        };
     }, []);
+
 
     const handleSend = () => {
         if (text.trim() && !isLoading) {
@@ -54,14 +71,12 @@ const InputBar: React.FC<InputBarProps> = ({ onSendMessage, isLoading }) => {
     };
 
     const handleMicClick = () => {
-        if (!recognitionRef.current || isLoading) return;
+        if (!recognitionRef.current || isLoading || micStatus === 'denied') return;
 
-        if (isListening) {
+        if (micStatus === 'listening') {
             recognitionRef.current.stop();
-            setIsListening(false);
         } else {
             recognitionRef.current.start();
-            setIsListening(true);
         }
     };
 
@@ -80,9 +95,22 @@ const InputBar: React.FC<InputBarProps> = ({ onSendMessage, isLoading }) => {
         }
     };
 
+    const getMicTooltip = () => {
+        switch (micStatus) {
+            case 'listening':
+                return 'Stop listening';
+            case 'denied':
+                return 'Microphone access is denied or not supported';
+            case 'error':
+                return 'Recognition error, please try again';
+            default:
+                return 'Use microphone';
+        }
+    };
+
     return (
         <div className="bg-white p-4 border-t border-gray-200">
-            <div className="flex items-center bg-gray-100 rounded-full p-2">
+            <div className="flex items-center bg-gray-100 rounded-full p-2" role="toolbar" aria-label="Message input toolbar">
                 <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isLoading}
@@ -99,6 +127,7 @@ const InputBar: React.FC<InputBarProps> = ({ onSendMessage, isLoading }) => {
                     accept=".txt,.pdf,.docx"
                 />
                 <textarea
+                    ref={ref}
                     value={text}
                     onChange={(e) => setText(e.target.value)}
                     onKeyDown={(e) => {
@@ -111,14 +140,17 @@ const InputBar: React.FC<InputBarProps> = ({ onSendMessage, isLoading }) => {
                     className="flex-1 bg-transparent px-4 py-2 resize-none outline-none text-gray-800 placeholder-gray-500"
                     rows={1}
                     disabled={isLoading}
+                    aria-label="Ask a question about NavGurukul"
                 />
                 <button
                     onClick={handleMicClick}
-                    disabled={isLoading}
+                    disabled={isLoading || micStatus === 'denied'}
                     className="p-2 hover:bg-gray-200 rounded-full disabled:opacity-50 transition-colors"
-                    aria-label="Use microphone"
+                    aria-label={getMicTooltip()}
+                    aria-pressed={micStatus === 'listening'}
+                    title={getMicTooltip()}
                 >
-                    <MicIcon isListening={isListening} />
+                    <MicIcon status={micStatus} />
                 </button>
                 <button
                     onClick={handleSend}
@@ -131,6 +163,6 @@ const InputBar: React.FC<InputBarProps> = ({ onSendMessage, isLoading }) => {
             </div>
         </div>
     );
-};
+});
 
 export default InputBar;

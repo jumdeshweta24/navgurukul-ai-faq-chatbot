@@ -15,6 +15,7 @@ const Header: React.FC<HeaderProps> = ({ onClearHistory }) => {
             <button
                 onClick={onClearHistory}
                 className="px-4 py-2 text-sm font-semibold text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                aria-label="Clear chat history"
             >
                 Clear Chat
             </button>

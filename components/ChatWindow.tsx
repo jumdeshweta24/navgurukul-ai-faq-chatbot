@@ -28,7 +28,11 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ messages, isLoading, onPromptCl
     useEffect(scrollToBottom, [messages, isLoading]);
 
     return (
-        <div className={`flex-1 p-6 overflow-y-auto ${flashBg ? 'bg-orange-200' : 'bg-orange-100'} transition-colors duration-300`}>
+        <div
+            className={`flex-1 p-6 overflow-y-auto ${flashBg ? 'bg-orange-200' : 'bg-orange-100'} transition-colors duration-300`}
+            role="log"
+            aria-live="polite"
+        >
             {messages.map((msg) => (
                 <MessageComponent key={msg.id} message={msg} onFeedback={onFeedback} />
             ))}
@@ -51,7 +55,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ messages, isLoading, onPromptCl
             )}
             
             {isLoading && (
-                 <div className="flex items-start gap-3 my-4">
+                 <div className="flex items-start gap-3 my-4" role="status" aria-label="Assistant is typing">
                     <BotIcon />
                     <div className="bg-white text-gray-800 p-3.5 rounded-2xl rounded-bl-none shadow-sm flex items-center space-x-2 border border-gray-200/80">
                          <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>

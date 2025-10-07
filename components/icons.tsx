@@ -26,11 +26,42 @@ export const SendIcon = () => (
     </svg>
 );
 
-export const MicIcon = ({ isListening }: { isListening: boolean }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${isListening ? 'text-orange-500' : 'text-gray-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-    </svg>
-);
+export const MicIcon = ({ status }: { status: 'idle' | 'listening' | 'error' | 'denied' }) => {
+    const baseMicPath = "M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z";
+    const slashPath = "M5 3l14 18";
+
+    let iconColor = 'text-gray-500';
+    let animationClass = '';
+    let showSlash = false;
+    let cursorClass = '';
+
+    switch (status) {
+        case 'listening':
+            iconColor = 'text-orange-500';
+            animationClass = 'animate-pulse';
+            break;
+        case 'error':
+            iconColor = 'text-red-500';
+            break;
+        case 'denied':
+            iconColor = 'text-gray-400';
+            showSlash = true;
+            cursorClass = 'cursor-not-allowed';
+            break;
+        case 'idle':
+        default:
+            iconColor = 'text-gray-500';
+            break;
+    }
+
+    return (
+        <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${iconColor} ${animationClass} ${cursorClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d={baseMicPath} />
+            {showSlash && <path strokeLinecap="round" strokeLinejoin="round" d={slashPath} />}
+        </svg>
+    );
+};
+
 
 export const PaperclipIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

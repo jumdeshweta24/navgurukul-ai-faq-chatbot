@@ -15,6 +15,7 @@ const App: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [flashBg, setFlashBg] = useState(false);
     const chatRef = useRef<Chat | null>(null);
+    const inputRef = useRef<HTMLTextAreaElement>(null);
 
     const startNewChat = useCallback(() => {
         chatRef.current = initializeChat();
@@ -150,6 +151,7 @@ const App: React.FC = () => {
             setMessages(prev => [...prev, errorMessage]);
         } finally {
             setIsLoading(false);
+            inputRef.current?.focus();
         }
     };
 
@@ -164,7 +166,7 @@ const App: React.FC = () => {
                 flashBg={flashBg} 
                 onFeedback={handleFeedback}
             />
-            <InputBar onSendMessage={handleSendMessage} isLoading={isLoading} />
+            <InputBar ref={inputRef} onSendMessage={handleSendMessage} isLoading={isLoading} />
         </div>
     );
 };

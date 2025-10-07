@@ -104,6 +104,7 @@ const MessageComponent: React.FC<MessageProps> = ({ message, onFeedback }) => {
                                 : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
                         }`}
                         aria-label={isCopied ? "Copied!" : "Copy response"}
+                        aria-live="polite"
                     >
                         {isCopied ? <CheckIcon /> : <CopyIcon />}
                     </button>
@@ -127,6 +128,7 @@ const MessageComponent: React.FC<MessageProps> = ({ message, onFeedback }) => {
                                     title={source.web.title}
                                 >
                                     {source.web.title || new URL(source.web.uri).hostname}
+                                    <span className="sr-only">(opens in a new tab)</span>
                                 </a>
                                 <p className="text-xs text-gray-500 mt-0.5 truncate">{source.web.uri}</p>
                                 {source.retrievedContext?.text && (
