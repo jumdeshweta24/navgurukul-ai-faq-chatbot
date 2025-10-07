@@ -1,11 +1,11 @@
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 import { SYSTEM_INSTRUCTION } from '../constants';
 
-if (!process.env.API_KEY) {
-  throw new Error("API_KEY environment variable is not set.");
+if (!process.env.GEMINI_API_KEY) {
+  throw new Error("GEMINI_API_KEY environment variable is not set. Create a .env.local file with GEMINI_API_KEY=your_key");
 }
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 export const initializeChat = (): Chat => {
   return ai.chats.create({
