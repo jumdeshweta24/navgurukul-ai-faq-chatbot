@@ -28,6 +28,14 @@ const App: React.FC = () => {
         chatRef.current = initializeChat();
     }, []);
 
+    useEffect(() => {
+        // Set focus on the input textarea when the component mounts,
+        // after a new message is received, or when the chat is cleared.
+        if (!isLoading) {
+            inputRef.current?.focus();
+        }
+    }, [isLoading, messages.length]);
+
     const handleClearHistory = () => {
         startNewChat();
         setFlashBg(true);
@@ -151,7 +159,6 @@ const App: React.FC = () => {
             setMessages(prev => [...prev, errorMessage]);
         } finally {
             setIsLoading(false);
-            inputRef.current?.focus();
         }
     };
 
